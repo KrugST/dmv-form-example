@@ -32,13 +32,6 @@ def _get_str(data: Dict[str, Any], *path: str) -> str:
 
 def _build_field_values(payload: Dict[str, Any]) -> Dict[str, str]:
     explanation = _get_str(payload, "additionalRequest", "explanation")
-    email = _get_str(payload, "contact", "email")
-    if email:
-        explanation = (
-            f"{explanation} | Contact email: {email}".strip(" |")
-            if explanation
-            else f"Contact email: {email}"
-        )
 
     return {
         "Vehicle license plate": _get_str(payload, "vehicle", "licensePlate"),
@@ -65,6 +58,7 @@ def _build_field_values(payload: Dict[str, Any]) -> Dict[str, str]:
         "Explanation": explanation,
         "certification": _get_str(payload, "certification", "signature"),
         "title": _get_str(payload, "certification", "title"),
+        "1": _get_str(payload, "contact", "email"),
         "area code": _get_str(payload, "contact", "areaCode"),
         "telephone number": _get_str(payload, "contact", "phoneNumber"),
         "date.0": _get_str(payload, "certification", "date"),
