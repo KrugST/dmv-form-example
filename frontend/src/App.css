@@ -14,3 +14,16 @@
 .address-splitter {
   border-bottom: 1px dotted #9ca3af;
 }
+
+.signature-pad {
+  width: 100%;
+  border: 1px solid #ced4da;
+  border-radius: 0.375rem;
+  background: #ffffff;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.signature-pad.is-invalid {
+  border-color: #dc3545;
+}

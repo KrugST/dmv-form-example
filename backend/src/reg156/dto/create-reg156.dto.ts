@@ -30,6 +30,27 @@ class AtLeastOneTrueConstraint implements ValidatorConstraintInterface {
   }
 }
 
+@ValidatorConstraint({ name: 'signaturePresent', async: false })
+class SignaturePresentConstraint implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+    const certification = value as Record<string, unknown>;
+    const signature = certification.signature;
+    const signatureImage = certification.signatureImage;
+    const hasTypedSignature =
+      typeof signature === 'string' && signature.trim().length > 0;
+    const hasDrawnSignature =
+      typeof signatureImage === 'string' && signatureImage.trim().length > 0;
+    return hasTypedSignature || hasDrawnSignature;
+  }
+
+  defaultMessage(args: ValidationArguments): string {
+    return `${args.property} must include a drawn or typed signature`;
+  }
+}
+
 class VehicleInfoDto {
   @IsString()
   @IsNotEmpty()
@@ -321,10 +342,21 @@ class AdditionalRequestDto {
 }
 
 class CertificationDto {
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' && value.trim() === '' ? undefined : value,
+  )
   @IsString()
-  @IsNotEmpty()
   @MaxLength(80)
-  signature!: string;
+  signature?: string;
+
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' && value.trim() === '' ? undefined : value,
+  )
+  @IsString()
+  @MaxLength(2_000_000)
+  signatureImage?: string;
 
   @IsOptional()
   @IsString()
@@ -385,5 +417,6 @@ export class CreateReg156Dto {
 
   @ValidateNested()
   @Type(() => CertificationDto)
+  @Validate(SignaturePresentConstraint)
   certification!: CertificationDto;
 }

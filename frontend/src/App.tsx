@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { FormEvent, PointerEvent as ReactPointerEvent } from 'react';
 import './App.css';
 
 type FormState = {
@@ -74,6 +74,7 @@ type FormState = {
   };
   certification: {
     signature: string;
+    signatureImage: string;
     title: string;
     date: string;
   };
@@ -151,6 +152,7 @@ const initialForm: FormState = {
   },
   certification: {
     signature: '',
+    signatureImage: '',
     title: '',
     date: '',
   },
@@ -205,6 +207,8 @@ function App() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [mailingSameAsPhysical, setMailingSameAsPhysical] = useState(false);
+  const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isDrawingSignatureRef = useRef(false);
 
   const apiBaseUrl = useMemo(
     () => import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000',
@@ -252,6 +256,9 @@ function App() {
     value.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 2);
   const sanitizeEmailInput = (value: string) =>
     value.replace(/\s/g, '').toLowerCase().slice(0, 120);
+  const hasSignature = () =>
+    form.certification.signature.trim().length > 0 ||
+    form.certification.signatureImage.trim().length > 0;
 
   const setField = <S extends keyof FormState, K extends keyof FormState[S]>(
     section: S,
@@ -291,6 +298,80 @@ function App() {
     form.address.zipCode,
   ]);
 
+  const getCanvasPoint = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) {
+      return { x: 0, y: 0 };
+    }
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (event.clientX - rect.left) * scaleX,
+      y: (event.clientY - rect.top) * scaleY,
+    };
+  };
+
+  const startSignatureDraw = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) {
+      return;
+    }
+    const context = canvas.getContext('2d');
+    if (!context) {
+      return;
+    }
+    const { x, y } = getCanvasPoint(event);
+    context.lineWidth = 2.2;
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    context.strokeStyle = '#111827';
+    context.beginPath();
+    context.moveTo(x, y);
+    isDrawingSignatureRef.current = true;
+    canvas.setPointerCapture(event.pointerId);
+  };
+
+  const moveSignatureDraw = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawingSignatureRef.current) {
+      return;
+    }
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) {
+      return;
+    }
+    const context = canvas.getContext('2d');
+    if (!context) {
+      return;
+    }
+    const { x, y } = getCanvasPoint(event);
+    context.lineTo(x, y);
+    context.stroke();
+  };
+
+  const endSignatureDraw = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas || !isDrawingSignatureRef.current) {
+      return;
+    }
+    isDrawingSignatureRef.current = false;
+    canvas.releasePointerCapture(event.pointerId);
+    setField('certification', 'signatureImage', canvas.toDataURL('image/png'));
+  };
+
+  const clearSignature = () => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) {
+      return;
+    }
+    const context = canvas.getContext('2d');
+    if (!context) {
+      return;
+    }
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    setField('certification', 'signatureImage', '');
+  };
+
   const validateForm = (): string[] => {
     const nextErrors: string[] = [];
     if (!form.vehicle.licensePlate.trim()) {
@@ -323,8 +404,8 @@ function App() {
     if (form.address.mailingZipCode.trim() && !/^\d{5}$/.test(form.address.mailingZipCode)) {
       nextErrors.push('Mailing ZIP must be exactly 5 digits.');
     }
-    if (!form.certification.signature.trim()) {
-      nextErrors.push('Certification signature is required.');
+    if (!hasSignature()) {
+      nextErrors.push('Signature is required. Draw or type a signature.');
     }
     if (!Object.values(form.requestedItems).some(Boolean)) {
       nextErrors.push('Select at least one requested replacement item.');
@@ -836,12 +917,35 @@ function App() {
               <section>
                 <h2 className="section-title">Certification</h2>
                 <div className="row g-3">
+                  <div className="col-12">
+                    <label className="form-label mb-1">Signature *</label>
+                    <canvas
+                      ref={signatureCanvasRef}
+                      className={`signature-pad ${!hasSignature() ? 'is-invalid' : ''}`}
+                      width={760}
+                      height={170}
+                      onPointerDown={startSignatureDraw}
+                      onPointerMove={moveSignatureDraw}
+                      onPointerUp={endSignatureDraw}
+                      onPointerLeave={endSignatureDraw}
+                    />
+                    <div className="d-flex justify-content-between align-items-center mt-2 gap-2 flex-wrap">
+                      <small className="text-secondary">
+                        Draw your signature above. If needed, use typed fallback below.
+                      </small>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={clearSignature}
+                      >
+                        Clear Signature
+                      </button>
+                    </div>
+                  </div>
                   <div className="col-md-5">
-                    <label className="form-label">Signature *</label>
+                    <label className="form-label">Typed Signature (Optional)</label>
                     <input
-                      className={`form-control ${
-                        requiredInvalid(form.certification.signature) ? 'is-invalid' : ''
-                      }`}
+                      className="form-control"
                       value={form.certification.signature}
                       onChange={(event) =>
                         setField('certification', 'signature', event.target.value)

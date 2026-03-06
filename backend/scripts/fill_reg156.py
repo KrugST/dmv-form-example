@@ -1,9 +1,13 @@
+import base64
+import io
 import json
 import sys
 from typing import Any, Dict
 
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import NameObject
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfgen import canvas
 
 
 def _as_yes_no(value: bool) -> str:
@@ -32,6 +36,7 @@ def _get_str(data: Dict[str, Any], *path: str) -> str:
 
 def _build_field_values(payload: Dict[str, Any]) -> Dict[str, str]:
     explanation = _get_str(payload, "additionalRequest", "explanation")
+    signature_image = _get_str(payload, "certification", "signatureImage")
 
     return {
         "Vehicle license plate": _get_str(payload, "vehicle", "licensePlate"),
@@ -56,7 +61,9 @@ def _build_field_values(payload: Dict[str, Any]) -> Dict[str, str]:
         "state2": _get_str(payload, "address", "mailingState"),
         "zip code2": _get_str(payload, "address", "mailingZipCode"),
         "Explanation": explanation,
-        "certification": _get_str(payload, "certification", "signature"),
+        "certification": (
+            "" if signature_image else _get_str(payload, "certification", "signature")
+        ),
         "title": _get_str(payload, "certification", "title"),
         "0": _get_str(payload, "certification", "date"),
         "1": _get_str(payload, "contact", "email"),
@@ -117,6 +124,42 @@ def _build_field_values(payload: Dict[str, Any]) -> Dict[str, str]:
     }
 
 
+def _overlay_signature_image(writer: PdfWriter, payload: Dict[str, Any]) -> None:
+    signature_image = _get_str(payload, "certification", "signatureImage").strip()
+    if not signature_image:
+        return
+
+    encoded_image = (
+        signature_image.split(",", 1)[1] if "," in signature_image else signature_image
+    )
+    image_bytes = base64.b64decode(encoded_image)
+
+    first_page = writer.pages[0]
+    page_width = float(first_page.mediabox.width)
+    page_height = float(first_page.mediabox.height)
+
+    # Signature of registered owner field on page 1.
+    x1, y1, x2, y2 = (23.1273, 67.5471, 213.229, 84.3107)
+
+    packet = io.BytesIO()
+    signature_canvas = canvas.Canvas(packet, pagesize=(page_width, page_height))
+    signature_canvas.drawImage(
+        ImageReader(io.BytesIO(image_bytes)),
+        x1,
+        y1,
+        width=x2 - x1,
+        height=y2 - y1,
+        preserveAspectRatio=True,
+        mask="auto",
+        anchor="c",
+    )
+    signature_canvas.save()
+
+    packet.seek(0)
+    overlay_reader = PdfReader(packet)
+    first_page.merge_page(overlay_reader.pages[0])
+
+
 def main() -> None:
     if len(sys.argv) < 2:
         raise ValueError("Template path argument is required")
@@ -140,6 +183,8 @@ def main() -> None:
         writer.update_page_form_field_values(
             page, field_values, auto_regenerate=False, flatten=False
         )
+
+    _overlay_signature_image(writer, payload)
 
     writer.write(sys.stdout.buffer)
 
