@@ -211,6 +211,26 @@ function App() {
   );
 
   const requiredInvalid = (value: string) => value.trim().length === 0;
+  const isUsDate = (value: string) =>
+    /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/.test(value);
+  const formatDateInput = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 8);
+    if (digits.length <= 2) {
+      return digits;
+    }
+    if (digits.length <= 4) {
+      return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    }
+    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+  };
+  const sanitizePhoneInput = (value: string) =>
+    value.replace(/[^0-9()\-]/g, '').slice(0, 15);
+  const sanitizeZipInput = (value: string) => value.replace(/\D/g, '').slice(0, 5);
+  const sanitizeStateInput = (value: string) =>
+    value.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 2);
+  const sanitizeAreaCodeInput = (value: string) => value.replace(/\D/g, '').slice(0, 3);
+  const sanitizeEmailInput = (value: string) =>
+    value.replace(/\s/g, '').toLowerCase().slice(0, 120);
 
   const setField = <S extends keyof FormState, K extends keyof FormState[S]>(
     section: S,
@@ -246,6 +266,18 @@ function App() {
     if (!form.address.city.trim() || !form.address.state.trim() || !form.address.zipCode.trim()) {
       nextErrors.push('City, state, and ZIP are required.');
     }
+    if (form.address.zipCode.trim() && !/^\d{5}$/.test(form.address.zipCode)) {
+      nextErrors.push('ZIP must be exactly 5 digits.');
+    }
+    if (form.address.state.trim() && !/^[A-Z]{2}$/.test(form.address.state)) {
+      nextErrors.push('State must be exactly 2 letters.');
+    }
+    if (form.address.mailingState.trim() && !/^[A-Z]{2}$/.test(form.address.mailingState)) {
+      nextErrors.push('Mailing state must be exactly 2 letters.');
+    }
+    if (form.address.mailingZipCode.trim() && !/^\d{5}$/.test(form.address.mailingZipCode)) {
+      nextErrors.push('Mailing ZIP must be exactly 5 digits.');
+    }
     if (!form.certification.signature.trim()) {
       nextErrors.push('Certification signature is required.');
     }
@@ -262,6 +294,17 @@ function App() {
     }
     if (!form.contact.phoneNumber.trim()) {
       nextErrors.push('Phone number is required.');
+    } else if (!/^[0-9()\-]+$/.test(form.contact.phoneNumber)) {
+      nextErrors.push('Phone number can only include digits, parentheses, and hyphens.');
+    }
+    if (form.contact.areaCode.trim() && !/^\d{3}$/.test(form.contact.areaCode)) {
+      nextErrors.push('Area code must be exactly 3 digits.');
+    }
+    if (form.owner.birthDate.trim() && !isUsDate(form.owner.birthDate)) {
+      nextErrors.push('Birth date must be in MM/DD/YYYY format.');
+    }
+    if (form.certification.date.trim() && !isUsDate(form.certification.date)) {
+      nextErrors.push('Certification date must be in MM/DD/YYYY format.');
     }
     return nextErrors;
   };
@@ -439,10 +482,18 @@ function App() {
                   <div className="col-md-4">
                     <label className="form-label">Birth Date</label>
                     <input
-                      className="form-control"
+                      className={`form-control ${
+                        form.owner.birthDate.trim() && !isUsDate(form.owner.birthDate)
+                          ? 'is-invalid'
+                          : ''
+                      }`}
                       value={form.owner.birthDate}
-                      onChange={(event) => setField('owner', 'birthDate', event.target.value)}
+                      onChange={(event) =>
+                        setField('owner', 'birthDate', formatDateInput(event.target.value))
+                      }
                       placeholder="MM/DD/YYYY"
+                      inputMode="numeric"
+                      maxLength={10}
                     />
                   </div>
                 </div>
@@ -485,20 +536,32 @@ function App() {
                     <label className="form-label">State *</label>
                     <input
                       className={`form-control ${
-                        requiredInvalid(form.address.state) ? 'is-invalid' : ''
+                        requiredInvalid(form.address.state) || form.address.state.length !== 2
+                          ? 'is-invalid'
+                          : ''
                       }`}
                       value={form.address.state}
-                      onChange={(event) => setField('address', 'state', event.target.value)}
+                      onChange={(event) =>
+                        setField('address', 'state', sanitizeStateInput(event.target.value))
+                      }
+                      maxLength={2}
                     />
                   </div>
                   <div className="col-md-3">
                     <label className="form-label">ZIP *</label>
                     <input
                       className={`form-control ${
-                        requiredInvalid(form.address.zipCode) ? 'is-invalid' : ''
+                        requiredInvalid(form.address.zipCode) ||
+                        !/^\d{5}$/.test(form.address.zipCode)
+                          ? 'is-invalid'
+                          : ''
                       }`}
                       value={form.address.zipCode}
-                      onChange={(event) => setField('address', 'zipCode', event.target.value)}
+                      onChange={(event) =>
+                        setField('address', 'zipCode', sanitizeZipInput(event.target.value))
+                      }
+                      inputMode="numeric"
+                      maxLength={5}
                     />
                   </div>
                   <div className="col-md-6">
@@ -545,18 +608,34 @@ function App() {
                       className="form-control"
                       value={form.address.mailingState}
                       onChange={(event) =>
-                        setField('address', 'mailingState', event.target.value)
+                        setField(
+                          'address',
+                          'mailingState',
+                          sanitizeStateInput(event.target.value),
+                        )
                       }
+                      maxLength={2}
                     />
                   </div>
                   <div className="col-md-4">
                     <label className="form-label">Mailing ZIP</label>
                     <input
-                      className="form-control"
+                      className={`form-control ${
+                        form.address.mailingZipCode.trim() &&
+                        !/^\d{5}$/.test(form.address.mailingZipCode)
+                          ? 'is-invalid'
+                          : ''
+                      }`}
                       value={form.address.mailingZipCode}
                       onChange={(event) =>
-                        setField('address', 'mailingZipCode', event.target.value)
+                        setField(
+                          'address',
+                          'mailingZipCode',
+                          sanitizeZipInput(event.target.value),
+                        )
                       }
+                      inputMode="numeric"
+                      maxLength={5}
                     />
                   </div>
                 </div>
@@ -712,10 +791,23 @@ function App() {
                   <div className="col-md-3">
                     <label className="form-label">Date</label>
                     <input
-                      className="form-control"
+                      className={`form-control ${
+                        form.certification.date.trim() &&
+                        !isUsDate(form.certification.date)
+                          ? 'is-invalid'
+                          : ''
+                      }`}
                       value={form.certification.date}
-                      onChange={(event) => setField('certification', 'date', event.target.value)}
+                      onChange={(event) =>
+                        setField(
+                          'certification',
+                          'date',
+                          formatDateInput(event.target.value),
+                        )
+                      }
                       placeholder="MM/DD/YYYY"
+                      inputMode="numeric"
+                      maxLength={10}
                     />
                   </div>
                   <div className="col-md-6">
@@ -723,29 +815,51 @@ function App() {
                     <input
                       type="email"
                       className={`form-control ${
-                        requiredInvalid(form.contact.email) ? 'is-invalid' : ''
+                        requiredInvalid(form.contact.email) ||
+                        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contact.email)
+                          ? 'is-invalid'
+                          : ''
                       }`}
                       value={form.contact.email}
-                      onChange={(event) => setField('contact', 'email', event.target.value)}
+                      onChange={(event) =>
+                        setField('contact', 'email', sanitizeEmailInput(event.target.value))
+                      }
                       required
                     />
                   </div>
                   <div className="col-md-2">
                     <label className="form-label">Area Code</label>
                     <input
-                      className="form-control"
+                      className={`form-control ${
+                        form.contact.areaCode.trim() && !/^\d{3}$/.test(form.contact.areaCode)
+                          ? 'is-invalid'
+                          : ''
+                      }`}
                       value={form.contact.areaCode}
-                      onChange={(event) => setField('contact', 'areaCode', event.target.value)}
+                      onChange={(event) =>
+                        setField('contact', 'areaCode', sanitizeAreaCodeInput(event.target.value))
+                      }
+                      inputMode="numeric"
+                      maxLength={3}
                     />
                   </div>
                   <div className="col-md-4">
                     <label className="form-label">Telephone Number *</label>
                     <input
                       className={`form-control ${
-                        requiredInvalid(form.contact.phoneNumber) ? 'is-invalid' : ''
+                        requiredInvalid(form.contact.phoneNumber) ||
+                        !/^[0-9()\-]+$/.test(form.contact.phoneNumber)
+                          ? 'is-invalid'
+                          : ''
                       }`}
                       value={form.contact.phoneNumber}
-                      onChange={(event) => setField('contact', 'phoneNumber', event.target.value)}
+                      onChange={(event) =>
+                        setField(
+                          'contact',
+                          'phoneNumber',
+                          sanitizePhoneInput(event.target.value),
+                        )
+                      }
                       required
                     />
                   </div>

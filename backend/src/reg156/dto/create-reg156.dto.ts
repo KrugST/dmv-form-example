@@ -1,9 +1,10 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEmail,
   IsNotEmpty,
   IsOptional,
+  Matches,
   IsString,
   MaxLength,
   Validate,
@@ -78,7 +79,13 @@ class OwnerInfoDto {
   coOwnerDlNumber?: string;
 
   @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' && value.trim() === '' ? undefined : value,
+  )
   @IsString()
+  @Matches(/^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/, {
+    message: 'birthDate must be in MM/DD/YYYY format',
+  })
   @MaxLength(30)
   birthDate?: string;
 }
@@ -101,11 +108,16 @@ class AddressInfoDto {
 
   @IsString()
   @IsNotEmpty()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.toUpperCase().trim() : value,
+  )
+  @Matches(/^[A-Z]{2}$/, { message: 'state must be exactly 2 letters' })
   @MaxLength(2)
   state!: string;
 
   @IsString()
   @IsNotEmpty()
+  @Matches(/^\d{5}$/, { message: 'zipCode must be exactly 5 digits' })
   @MaxLength(10)
   zipCode!: string;
 
@@ -131,28 +143,54 @@ class AddressInfoDto {
 
   @IsOptional()
   @IsString()
+  @Transform(({ value }) =>
+    typeof value === 'string'
+      ? value.trim() === ''
+        ? undefined
+        : value.toUpperCase().trim()
+      : value,
+  )
+  @Matches(/^[A-Z]{2}$/, {
+    message: 'mailingState must be exactly 2 letters',
+  })
   @MaxLength(2)
   mailingState?: string;
 
   @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' && value.trim() === '' ? undefined : value,
+  )
   @IsString()
+  @Matches(/^\d{5}$/, {
+    message: 'mailingZipCode must be exactly 5 digits',
+  })
   @MaxLength(10)
   mailingZipCode?: string;
 }
 
 class ContactInfoDto {
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  )
   @IsEmail()
   @IsNotEmpty()
   @MaxLength(120)
   email!: string;
 
   @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' && value.trim() === '' ? undefined : value,
+  )
   @IsString()
+  @Matches(/^\d{3}$/, { message: 'areaCode must be exactly 3 digits' })
   @MaxLength(5)
   areaCode?: string;
 
   @IsString()
   @IsNotEmpty()
+  @Matches(/^[0-9()\-]+$/, {
+    message: 'phoneNumber can only include digits, parentheses, and hyphens',
+  })
   @MaxLength(15)
   phoneNumber!: string;
 }
@@ -294,7 +332,13 @@ class CertificationDto {
   title?: string;
 
   @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' && value.trim() === '' ? undefined : value,
+  )
   @IsString()
+  @Matches(/^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/, {
+    message: 'date must be in MM/DD/YYYY format',
+  })
   @MaxLength(20)
   date?: string;
 }
