@@ -597,6 +597,23 @@ function App() {
                       onChange={(event) => setField('address', 'county', event.target.value)}
                     />
                   </div>
+                  <div className="col-12">
+                    <div className="address-splitter form-check mt-1 mb-1 pt-2 pb-2">
+                      <input
+                        id="mailing-same-as-physical"
+                        className="form-check-input"
+                        type="checkbox"
+                        checked={mailingSameAsPhysical}
+                        onChange={(event) => setMailingSameAsPhysical(event.target.checked)}
+                      />
+                      <label
+                        className="form-check-label"
+                        htmlFor="mailing-same-as-physical"
+                      >
+                        Mailing address is the same as physical address
+                      </label>
+                    </div>
+                  </div>
                   <div className="col-md-6">
                     <label className="form-label">Mailing Address</label>
                     <input
@@ -667,23 +684,6 @@ function App() {
                       maxLength={5}
                       disabled={mailingSameAsPhysical}
                     />
-                  </div>
-                  <div className="col-12">
-                    <div className="form-check mt-1">
-                      <input
-                        id="mailing-same-as-physical"
-                        className="form-check-input"
-                        type="checkbox"
-                        checked={mailingSameAsPhysical}
-                        onChange={(event) => setMailingSameAsPhysical(event.target.checked)}
-                      />
-                      <label
-                        className="form-check-label"
-                        htmlFor="mailing-same-as-physical"
-                      >
-                        Mailing address is the same as physical address
-                      </label>
-                    </div>
                   </div>
                 </div>
               </section>

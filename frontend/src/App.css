@@ -10,3 +10,7 @@
   padding-bottom: 0.45rem;
   border-bottom: 1px solid #e9ecef;
 }
+
+.address-splitter {
+  border-bottom: 1px dotted #9ca3af;
+}
