@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import './App.css';
 
@@ -204,6 +204,7 @@ function App() {
   const [errors, setErrors] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
+  const [mailingSameAsPhysical, setMailingSameAsPhysical] = useState(false);
 
   const apiBaseUrl = useMemo(
     () => import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000',
@@ -245,6 +246,30 @@ function App() {
       },
     }));
   };
+
+  useEffect(() => {
+    if (!mailingSameAsPhysical) {
+      return;
+    }
+    setForm((prev) => ({
+      ...prev,
+      address: {
+        ...prev.address,
+        mailingAddress: prev.address.physicalAddress,
+        mailingApartment: prev.address.apartment,
+        mailingCity: prev.address.city,
+        mailingState: prev.address.state,
+        mailingZipCode: prev.address.zipCode,
+      },
+    }));
+  }, [
+    mailingSameAsPhysical,
+    form.address.physicalAddress,
+    form.address.apartment,
+    form.address.city,
+    form.address.state,
+    form.address.zipCode,
+  ]);
 
   const validateForm = (): string[] => {
     const nextErrors: string[] = [];
@@ -580,6 +605,7 @@ function App() {
                       onChange={(event) =>
                         setField('address', 'mailingAddress', event.target.value)
                       }
+                      disabled={mailingSameAsPhysical}
                     />
                   </div>
                   <div className="col-md-3">
@@ -590,6 +616,7 @@ function App() {
                       onChange={(event) =>
                         setField('address', 'mailingApartment', event.target.value)
                       }
+                      disabled={mailingSameAsPhysical}
                     />
                   </div>
                   <div className="col-md-3">
@@ -600,6 +627,7 @@ function App() {
                       onChange={(event) =>
                         setField('address', 'mailingCity', event.target.value)
                       }
+                      disabled={mailingSameAsPhysical}
                     />
                   </div>
                   <div className="col-md-2">
@@ -615,6 +643,7 @@ function App() {
                         )
                       }
                       maxLength={2}
+                      disabled={mailingSameAsPhysical}
                     />
                   </div>
                   <div className="col-md-4">
@@ -636,7 +665,25 @@ function App() {
                       }
                       inputMode="numeric"
                       maxLength={5}
+                      disabled={mailingSameAsPhysical}
                     />
+                  </div>
+                  <div className="col-12">
+                    <div className="form-check mt-1">
+                      <input
+                        id="mailing-same-as-physical"
+                        className="form-check-input"
+                        type="checkbox"
+                        checked={mailingSameAsPhysical}
+                        onChange={(event) => setMailingSameAsPhysical(event.target.checked)}
+                      />
+                      <label
+                        className="form-check-label"
+                        htmlFor="mailing-same-as-physical"
+                      >
+                        Mailing address is the same as physical address
+                      </label>
+                    </div>
                   </div>
                 </div>
               </section>
