@@ -112,10 +112,9 @@ class AddressInfoDto {
 }
 
 class ContactInfoDto {
-  @IsOptional()
   @IsEmail()
   @MaxLength(120)
-  email?: string;
+  email!: string;
 
   @IsOptional()
   @IsString()
