@@ -28,7 +28,7 @@ Install Python dependencies:
 pip install -r backend/scripts/requirements.txt
 ```
 
-## Run
+## Quick Start
 
 From the repo root:
 
@@ -36,10 +36,46 @@ From the repo root:
 npm start
 ```
 
-This starts:
+This starts both apps:
 
-- Backend API on `http://localhost:3000`
-- Frontend UI on `http://localhost:5173`
+- Backend API: `http://localhost:3000`
+- Frontend UI: `http://localhost:5173`
+
+## Run
+
+Run everything together:
+
+```bash
+npm start
+```
+
+Run only backend:
+
+```bash
+npm run start:backend
+```
+
+Run only frontend:
+
+```bash
+npm run start:frontend
+```
+
+Build both apps:
+
+```bash
+npm run build
+```
+
+## Environment Variables
+
+Optional variables you can set:
+
+- Backend:
+  - `PORT` (default: `3000`)
+  - `FRONTEND_ORIGIN` (default: `http://localhost:5173`)
+- Frontend:
+  - `VITE_API_BASE_URL` (default: `http://localhost:3000`)
 
 ## API
 
@@ -48,6 +84,48 @@ This starts:
 - Accepts JSON payload for REG-156 fields
 - Validates request body using `class-validator`
 - Returns a generated `application/pdf` file as attachment
+
+Minimal `curl` smoke test:
+
+```bash
+curl -X POST "http://localhost:3000/reg-156/pdf" \
+  -H "Content-Type: application/json" \
+  --output reg-156-filled.pdf \
+  -d '{
+    "vehicle": { "licensePlate": "8ABC123", "vin": "1HGCM82633A123456" },
+    "owner": { "trueFullName": "Jane Doe", "dlNumber": "D1234567" },
+    "address": {
+      "physicalAddress": "123 Main St",
+      "city": "Sacramento",
+      "state": "CA",
+      "zipCode": "95814"
+    },
+    "contact": { "email": "jane@example.com", "areaCode": "916", "phoneNumber": "555-1234" },
+    "requestedItems": { "licensePlates": true },
+    "reason": { "lost": true },
+    "replacementCount": {},
+    "additionalRequest": {},
+    "certification": { "signature": "Jane Doe" }
+  }'
+```
+
+Windows PowerShell (`curl.exe`) equivalent:
+
+```powershell
+curl.exe -X POST "http://localhost:3000/reg-156/pdf" `
+  -H "Content-Type: application/json" `
+  --output reg-156-filled.pdf `
+  -d "{\"vehicle\":{\"licensePlate\":\"8ABC123\",\"vin\":\"1HGCM82633A123456\"},\"owner\":{\"trueFullName\":\"Jane Doe\",\"dlNumber\":\"D1234567\"},\"address\":{\"physicalAddress\":\"123 Main St\",\"city\":\"Sacramento\",\"state\":\"CA\",\"zipCode\":\"95814\"},\"contact\":{\"email\":\"jane@example.com\",\"areaCode\":\"916\",\"phoneNumber\":\"555-1234\"},\"requestedItems\":{\"licensePlates\":true},\"reason\":{\"lost\":true},\"replacementCount\":{},\"additionalRequest\":{},\"certification\":{\"signature\":\"Jane Doe\"}}"
+```
+
+## Troubleshooting
+
+- If PDF generation fails with a Python error, verify:
+  - `python --version` works
+  - `pip install -r backend/scripts/requirements.txt` completed successfully
+- If frontend cannot reach backend, verify:
+  - Backend is running on `http://localhost:3000`
+  - `VITE_API_BASE_URL` points to the correct API URL
 
 ## Design Notes
 
