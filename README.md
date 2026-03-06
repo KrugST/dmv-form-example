@@ -84,6 +84,7 @@ Optional variables you can set:
 - Accepts JSON payload for REG-156 fields
 - Validates request body using `class-validator`
 - Returns a generated `application/pdf` file as attachment
+- You need to click "Save Response" and save as PDF if you want to view that file
 
 Minimal `curl` smoke test:
 
