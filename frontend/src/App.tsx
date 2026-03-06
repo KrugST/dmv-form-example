@@ -224,12 +224,32 @@ function App() {
     }
     return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
   };
-  const sanitizePhoneInput = (value: string) =>
-    value.replace(/[^0-9()\-]/g, '').slice(0, 15);
+  const toPhoneDigits = (value: string) => value.replace(/\D/g, '').slice(0, 10);
+  const formatPhoneDisplay = (digits: string) => {
+    if (!digits) {
+      return '';
+    }
+    if (digits.length <= 3) {
+      return `(${digits}`;
+    }
+    if (digits.length <= 6) {
+      return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    }
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  };
+  const splitPhoneFromCombined = (value: string) => {
+    const digits = toPhoneDigits(value);
+    const areaCode = digits.slice(0, 3);
+    const localDigits = digits.slice(3, 10);
+    const phoneNumber =
+      localDigits.length > 3
+        ? `${localDigits.slice(0, 3)}-${localDigits.slice(3)}`
+        : localDigits;
+    return { areaCode, phoneNumber };
+  };
   const sanitizeZipInput = (value: string) => value.replace(/\D/g, '').slice(0, 5);
   const sanitizeStateInput = (value: string) =>
     value.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 2);
-  const sanitizeAreaCodeInput = (value: string) => value.replace(/\D/g, '').slice(0, 3);
   const sanitizeEmailInput = (value: string) =>
     value.replace(/\s/g, '').toLowerCase().slice(0, 120);
 
@@ -319,11 +339,12 @@ function App() {
     }
     if (!form.contact.phoneNumber.trim()) {
       nextErrors.push('Phone number is required.');
-    } else if (!/^[0-9()\-]+$/.test(form.contact.phoneNumber)) {
-      nextErrors.push('Phone number can only include digits, parentheses, and hyphens.');
     }
-    if (form.contact.areaCode.trim() && !/^\d{3}$/.test(form.contact.areaCode)) {
-      nextErrors.push('Area code must be exactly 3 digits.');
+    const combinedPhoneDigits = toPhoneDigits(
+      `${form.contact.areaCode}${form.contact.phoneNumber}`,
+    );
+    if (combinedPhoneDigits.length > 0 && combinedPhoneDigits.length !== 10) {
+      nextErrors.push('Phone number must be exactly 10 digits.');
     }
     if (form.owner.birthDate.trim() && !isUsDate(form.owner.birthDate)) {
       nextErrors.push('Birth date must be in MM/DD/YYYY format.');
@@ -874,40 +895,36 @@ function App() {
                       required
                     />
                   </div>
-                  <div className="col-md-2">
-                    <label className="form-label">Area Code</label>
+                  <div className="col-md-6">
+                    <label className="form-label">Phone Number *</label>
                     <input
+                      aria-label="Phone number"
                       className={`form-control ${
-                        form.contact.areaCode.trim() && !/^\d{3}$/.test(form.contact.areaCode)
+                        toPhoneDigits(`${form.contact.areaCode}${form.contact.phoneNumber}`)
+                          .length !== 10
                           ? 'is-invalid'
                           : ''
                       }`}
-                      value={form.contact.areaCode}
-                      onChange={(event) =>
-                        setField('contact', 'areaCode', sanitizeAreaCodeInput(event.target.value))
-                      }
-                      inputMode="numeric"
-                      maxLength={3}
-                    />
-                  </div>
-                  <div className="col-md-4">
-                    <label className="form-label">Telephone Number *</label>
-                    <input
-                      className={`form-control ${
-                        requiredInvalid(form.contact.phoneNumber) ||
-                        !/^[0-9()\-]+$/.test(form.contact.phoneNumber)
-                          ? 'is-invalid'
-                          : ''
-                      }`}
-                      value={form.contact.phoneNumber}
-                      onChange={(event) =>
-                        setField(
-                          'contact',
-                          'phoneNumber',
-                          sanitizePhoneInput(event.target.value),
-                        )
-                      }
+                      value={formatPhoneDisplay(
+                        toPhoneDigits(`${form.contact.areaCode}${form.contact.phoneNumber}`),
+                      )}
+                      onChange={(event) => {
+                        const { areaCode, phoneNumber } = splitPhoneFromCombined(
+                          event.target.value,
+                        );
+                        setForm((prev) => ({
+                          ...prev,
+                          contact: {
+                            ...prev.contact,
+                            areaCode,
+                            phoneNumber,
+                          },
+                        }));
+                      }}
                       required
+                      inputMode="numeric"
+                      maxLength={14}
+                      placeholder="(000) 000-0000"
                     />
                   </div>
                 </div>

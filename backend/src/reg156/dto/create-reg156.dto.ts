@@ -177,19 +177,19 @@ class ContactInfoDto {
   @MaxLength(120)
   email!: string;
 
-  @IsOptional()
   @Transform(({ value }) =>
     typeof value === 'string' && value.trim() === '' ? undefined : value,
   )
   @IsString()
+  @IsNotEmpty()
   @Matches(/^\d{3}$/, { message: 'areaCode must be exactly 3 digits' })
   @MaxLength(5)
-  areaCode?: string;
+  areaCode!: string;
 
   @IsString()
   @IsNotEmpty()
-  @Matches(/^[0-9()\-]+$/, {
-    message: 'phoneNumber can only include digits, parentheses, and hyphens',
+  @Matches(/^\d{3}-\d{4}$/, {
+    message: 'phoneNumber must be in 123-4567 format',
   })
   @MaxLength(15)
   phoneNumber!: string;
