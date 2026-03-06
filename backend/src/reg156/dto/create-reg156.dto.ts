@@ -2,14 +2,36 @@ import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEmail,
+  IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
+  Validate,
+  ValidationArguments,
   ValidateNested,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
 } from 'class-validator';
+
+@ValidatorConstraint({ name: 'atLeastOneTrue', async: false })
+class AtLeastOneTrueConstraint implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+    return Object.values(value as Record<string, unknown>).some(
+      (fieldValue) => fieldValue === true,
+    );
+  }
+
+  defaultMessage(args: ValidationArguments): string {
+    return `${args.property} must have at least one selected option`;
+  }
+}
 
 class VehicleInfoDto {
   @IsString()
+  @IsNotEmpty()
   @MaxLength(10)
   licensePlate!: string;
 
@@ -19,6 +41,7 @@ class VehicleInfoDto {
   make?: string;
 
   @IsString()
+  @IsNotEmpty()
   @MaxLength(30)
   vin!: string;
 
@@ -35,10 +58,12 @@ class VehicleInfoDto {
 
 class OwnerInfoDto {
   @IsString()
+  @IsNotEmpty()
   @MaxLength(80)
   trueFullName!: string;
 
   @IsString()
+  @IsNotEmpty()
   @MaxLength(30)
   dlNumber!: string;
 
@@ -60,6 +85,7 @@ class OwnerInfoDto {
 
 class AddressInfoDto {
   @IsString()
+  @IsNotEmpty()
   @MaxLength(80)
   physicalAddress!: string;
 
@@ -69,14 +95,17 @@ class AddressInfoDto {
   apartment?: string;
 
   @IsString()
+  @IsNotEmpty()
   @MaxLength(50)
   city!: string;
 
   @IsString()
+  @IsNotEmpty()
   @MaxLength(2)
   state!: string;
 
   @IsString()
+  @IsNotEmpty()
   @MaxLength(10)
   zipCode!: string;
 
@@ -113,6 +142,7 @@ class AddressInfoDto {
 
 class ContactInfoDto {
   @IsEmail()
+  @IsNotEmpty()
   @MaxLength(120)
   email!: string;
 
@@ -121,10 +151,10 @@ class ContactInfoDto {
   @MaxLength(5)
   areaCode?: string;
 
-  @IsOptional()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(15)
-  phoneNumber?: string;
+  phoneNumber!: string;
 }
 
 class RequestedItemsDto {
@@ -254,6 +284,7 @@ class AdditionalRequestDto {
 
 class CertificationDto {
   @IsString()
+  @IsNotEmpty()
   @MaxLength(80)
   signature!: string;
 
@@ -287,10 +318,16 @@ export class CreateReg156Dto {
 
   @ValidateNested()
   @Type(() => RequestedItemsDto)
+  @Validate(AtLeastOneTrueConstraint, {
+    message: 'requestedItems must include at least one selected replacement item',
+  })
   requestedItems!: RequestedItemsDto;
 
   @ValidateNested()
   @Type(() => ReasonDto)
+  @Validate(AtLeastOneTrueConstraint, {
+    message: 'reason must include at least one selected replacement reason',
+  })
   reason!: ReasonDto;
 
   @ValidateNested()

@@ -260,6 +260,9 @@ function App() {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contact.email)) {
       nextErrors.push('Email format is invalid.');
     }
+    if (!form.contact.phoneNumber.trim()) {
+      nextErrors.push('Phone number is required.');
+    }
     return nextErrors;
   };
 
@@ -556,34 +559,6 @@ function App() {
                       }
                     />
                   </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Email *</label>
-                    <input
-                      type="email"
-                      className={`form-control ${
-                        requiredInvalid(form.contact.email) ? 'is-invalid' : ''
-                      }`}
-                      value={form.contact.email}
-                      onChange={(event) => setField('contact', 'email', event.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="col-md-2">
-                    <label className="form-label">Area Code</label>
-                    <input
-                      className="form-control"
-                      value={form.contact.areaCode}
-                      onChange={(event) => setField('contact', 'areaCode', event.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-4">
-                    <label className="form-label">Telephone Number</label>
-                    <input
-                      className="form-control"
-                      value={form.contact.phoneNumber}
-                      onChange={(event) => setField('contact', 'phoneNumber', event.target.value)}
-                    />
-                  </div>
                 </div>
               </section>
 
@@ -741,6 +716,37 @@ function App() {
                       value={form.certification.date}
                       onChange={(event) => setField('certification', 'date', event.target.value)}
                       placeholder="MM/DD/YYYY"
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label">Email *</label>
+                    <input
+                      type="email"
+                      className={`form-control ${
+                        requiredInvalid(form.contact.email) ? 'is-invalid' : ''
+                      }`}
+                      value={form.contact.email}
+                      onChange={(event) => setField('contact', 'email', event.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="col-md-2">
+                    <label className="form-label">Area Code</label>
+                    <input
+                      className="form-control"
+                      value={form.contact.areaCode}
+                      onChange={(event) => setField('contact', 'areaCode', event.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label">Telephone Number *</label>
+                    <input
+                      className={`form-control ${
+                        requiredInvalid(form.contact.phoneNumber) ? 'is-invalid' : ''
+                      }`}
+                      value={form.contact.phoneNumber}
+                      onChange={(event) => setField('contact', 'phoneNumber', event.target.value)}
+                      required
                     />
                   </div>
                 </div>
