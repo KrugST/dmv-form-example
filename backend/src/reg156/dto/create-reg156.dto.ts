@@ -363,7 +363,8 @@ export class CreateReg156Dto {
   @ValidateNested()
   @Type(() => RequestedItemsDto)
   @Validate(AtLeastOneTrueConstraint, {
-    message: 'requestedItems must include at least one selected replacement item',
+    message:
+      'requestedItems must include at least one selected replacement item',
   })
   requestedItems!: RequestedItemsDto;
 
